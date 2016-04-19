@@ -41,7 +41,7 @@ type Track struct {
 
 	sttsEntry *atom.TimeToSampleEntry
 	cttsEntry *atom.CompositionOffsetEntry
-	writeMdat func ([]byte) (int64,error)
+	muxer *Muxer
 	lastDts int64
 }
 

@@ -4,6 +4,7 @@ package mp4
 import (
 	"github.com/nareix/mp4/atom"
 	"github.com/nareix/mp4/isom"
+	"github.com/nareix/codec/h264parser"
 	"io"
 	"bytes"
 	"fmt"
@@ -63,7 +64,7 @@ func (self *Muxer) newTrack() *Track {
 		},
 	}
 
-	track.writeMdat = self.writeMdat
+	track.muxer = self
 	self.Tracks = append(self.Tracks, track)
 
 	return track
@@ -168,14 +169,32 @@ func (self *Track) WriteSample(pts int64, dts int64, isKeyFrame bool, frame []by
 			}
 		}
 	}
+
 	return self.writeSample(pts, dts, isKeyFrame, frame)
 }
 
 func (self *Track) writeSample(pts int64, dts int64, isKeyFrame bool, data []byte) (err error) {
 	var filePos int64
-	sampleSize := len(data)
-	if filePos, err = self.writeMdat(data); err != nil {
+	var sampleSize int
+
+	if filePos, err = self.muxer.mdatWriter.Seek(0, 1); err != nil {
 		return
+	}
+
+	if self.Type == H264 {
+		nalus, _ := h264parser.SplitNALUs(data)
+		h264parser.WalkNALUsAVCC(nalus, func(b []byte) {
+			sampleSize += len(b)
+			_, err = self.muxer.mdatWriter.Write(b)
+		})
+		if err != nil {
+			return
+		}
+	} else {
+		sampleSize = len(data)
+		if _, err = self.muxer.mdatWriter.Write(data); err != nil {
+			return
+		}
 	}
 
 	if isKeyFrame && self.sample.SyncSample != nil {
