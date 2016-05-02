@@ -67,7 +67,6 @@ func MuxExample() {
 	muxer.TrackH264.SetH264PPS(demuxer.TrackH264.GetH264PPS())
 	muxer.TrackH264.SetH264SPS(demuxer.TrackH264.GetH264SPS())
 	muxer.TrackH264.SetTimeScale(demuxer.TrackH264.TimeScale())
-
 	muxer.WriteHeader()
 	for {
 		pts, dts, isKeyFrame, data, err := demuxer.TrackH264.ReadSample()
